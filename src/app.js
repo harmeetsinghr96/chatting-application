@@ -1,14 +1,15 @@
-/**********************************
-* Discription: Importing Packages *
-***********************************/
+/* Importing packages */
 const express = require('express');
 const bodyParser = require('body-parser');
 const sequelize = require('./util/database');
 
-// setting app to express function
+/* Importing Routes */
+const user = require('./routes/user.routes');
+
+/* setting app to express function */
 const app = express();
 
-// Headers have been used
+/* Headers have been used */
 app.use((req, res, next) => {
   req.header("multipart/form-data");
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -23,19 +24,21 @@ app.use((req, res, next) => {
   next();
 });
 
-// middlewares of body parser
+/* middlewares of body parser */
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// connection to db
+/* connection to db */
 sequelize.sync()
-  .then((connected) => {
-    console.log('Connected');
-  }).catch((disconnected) => {
+  .then(() => {})
+  .catch((disconnected) => {
     console.log('Not Connected..!!');
-  })
+  });
 
-// exporting app to server file
+/* Set routes to app module */
+app.use("/api/user", user);
+
+/* exporting app to server file */
 module.exports = app;
 
 
