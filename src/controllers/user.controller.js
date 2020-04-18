@@ -3,6 +3,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require("jsonwebtoken");
 const mail = require('../shared/nodemail.shared');
 const crypto = require("crypto");
+const Sequelize = require('sequelize');
+const Op = Sequelize.Op;
 
 /* Register api */
 exports.Register = async (req, res, next) => {
@@ -463,10 +465,11 @@ exports.recoveryPassword = async (req, res, next) => {
 
         var token = req.body.token;
         var deviceType = req.body.deviceType;
+        var password = req.body.password;
 
-        if (token, deviceType) {
+        if (token, deviceType, password) {
 
-            const isRecoveryToken = await User.findOne({ where: { forgotPasswordToken: token, forgotPasswordTokenExpire: { $gt: Date.now() } } });
+            const isRecoveryToken = await User.findOne({ where: { forgotPasswordToken: token, forgotPasswordTokenExpire: { [Op.gt]: Date.now() } } });
 
             if (!isRecoveryToken) {
 
@@ -478,8 +481,41 @@ exports.recoveryPassword = async (req, res, next) => {
             } else {
 
                 let user = isRecoveryToken;
+                
+                bcrypt.hash(password, 12).then((hashed) => {
 
-                console.log("user", user);
+                    let recoveryPassword = {
+                        password: hashed,
+                        forgotPasswordToken: null,
+                        forgotPasswordTokenExpire: null
+                    };
+
+                    user.update( {...recoveryPassword} ).then((user) => {
+
+                        return res.status(200).json({
+                            status: "200",
+                            message: 'Password has Updated Successfully.!!'
+                        });
+
+                    }).catch((error) => {
+                        
+                        return res.status(400).json({
+                            status: "400",
+                            message: 'Reset Password Failed.!!',
+                            error: error
+                        });
+
+                    });
+
+                }).catch((error) => {
+
+                    return res.status(400).json({
+                        status: "400",
+                        message: 'hashing error.!!',
+                        error: error
+                    });
+                    
+                });
 
             }
 

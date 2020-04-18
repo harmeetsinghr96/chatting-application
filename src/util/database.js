@@ -7,7 +7,7 @@ const sequelize = new Sequelize(
   
   {
     dialect: `${process.env.SERVER_DATABASE}`,
-    host: `${process.env.SERVER_NAME}`
+    host: `${process.env.SERVER_NAME}`,
   }
 );
 

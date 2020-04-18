@@ -1,5 +1,5 @@
 const Sequelize = require('sequelize');
-const sequelize = require('../util/database');
+const sequelize = require('../../util/database');
 
 const MessageItem = sequelize.define('messageItem', {
     id: { type: Sequelize.INTEGER, autoIncrement: true, allowNull: false, primaryKey: true },

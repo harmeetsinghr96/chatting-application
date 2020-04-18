@@ -5,11 +5,13 @@ const sequelize = require('./util/database');
 
 /* Requiring models of Tables */
 const User = require('./models/user.model');
-const MessageList = require('./models/message-list.model');
-const MessageItem = require('./models/message-item.model');
+const Friend = require('./models/friends.model');
+const MessageList = require('./models/messages/message-list.model');
+const MessageItem = require('./models/messages/message-item.model');
 
 /* Importing Routes */
-const user = require('./routes/user.routes');
+const users = require('./routes/user.routes');
+const friends = require('./routes/friends.routes');
 
 /* setting app to express function */
 const app = express();
@@ -35,6 +37,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 /* Making one to one RelatiionShip */
 User.hasMany(MessageList);
+User.hasOne(Friend);
+Friend.belongsTo(User);
 MessageList.belongsTo(User, { constraints: true, onDelete: 'CASCADE' });
 MessageList.belongsToMany(User, { through: MessageItem });
 User.belongsToMany(MessageList, { through: MessageItem });
@@ -48,7 +52,8 @@ sequelize.sync()
   });
 
 /* Set routes to app module */
-app.use("/api/user", user);
+app.use("/api/user", users);
+app.use("/api/friend", friends);
 
 /* exporting app to server file */
 module.exports = app;
