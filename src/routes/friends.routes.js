@@ -7,6 +7,7 @@ const Router = express.Router();
 
 /* ROutes of users controller */
 Router.get("/getAllUsers", authMiddleware, Route.getAllUsers);
+Router.post("/sendRequest", authMiddleware, Route.friendReqesutSent);
 
 /* Exporting a module = Router */
 module.exports = Router;

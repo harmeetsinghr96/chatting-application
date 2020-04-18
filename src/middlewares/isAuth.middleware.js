@@ -9,7 +9,7 @@ const authMiddleware = (req, res, next) => {
         var token = req.headers.authorization.split(" ")[1];
         var authUser = jwt.verify(token, process.env.JWT_KEY);
 
-        req.user = authUser;
+        req.user = {...authUser};
 
         next();
   

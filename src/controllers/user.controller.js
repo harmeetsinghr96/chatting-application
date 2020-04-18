@@ -526,7 +526,8 @@ exports.recoveryPassword = async (req, res, next) => {
                 message: 'All fields are required.!!',
                 error: [
                     'Email is required.',
-                    'deviceType is required'
+                    'deviceType is required',
+                    'Password is required'
                 ]
             });
 
