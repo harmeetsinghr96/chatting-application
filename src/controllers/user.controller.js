@@ -6,91 +6,119 @@ const crypto = require("crypto");
 
 /* Register api */
 exports.Register = async (req, res, next) => {
+
     try {
-        const isExistingUser = await User.findOne({ where: { email: req.body.email } });
 
+        var email = req.body.email;
+        var password = req.body.password;
+        var firstName = req.body.firstName;
+        var lastName = req.body.lastName;
+        var deviceType = req.body.deviceType;
 
-        if (isExistingUser) {
+        if (email, password, firstName, lastName, deviceType) {
 
-            return res.status(400).json({
-                status: "400",
-                message: 'Email is taken already..!!'
-            });
+            const isExistingUser = await User.findOne({ where: { email: email } });
 
-        } else {
+            if (isExistingUser) {
 
-            crypto.randomBytes(20, (error, buffer) => {
-                if (error) {
+                return res.status(400).json({
+                    status: "400",
+                    message: 'Email is taken already..!!'
+                });
 
-                    return res.status(500).json({
-                        status: "500",
-                        message: 'Crypto error..',
-                        error: error
-                    });
+            } else {
 
-                } else {
+                crypto.randomBytes(20, (error, buffer) => {
+                    if (error) {
 
-                    let cryptedToken = buffer.toString('hex');
+                        return res.status(500).json({
+                            status: "500",
+                            message: 'Crypto error..',
+                            error: error
+                        });
 
-                    bcrypt.hash(req.body.password, 12).then((hashed) => {
-                      
-                        let newUser = {
-                            firstName: req.body.firstName,
-                            lastName: req.body.lastName,
-                            email: req.body.email,
-                            password: hashed,
-                            deviceType: req.body.deviceType,
-                            createdAt: Date.now(),
-                            accountVerificationToken: cryptedToken
-                        };
+                    } else {
 
-                        User.create({...newUser}).then((user) => {
+                        let cryptedToken = buffer.toString('hex');
 
-                            let mailing = {
-                                from: 'Admin',
-                                to: user.email,
-                                subject: 'Account Verification',
-                                html: `<section>
+                        bcrypt.hash(password, 12).then((hashed) => {
+
+                            let newUser = {
+                                firstName: firstName,
+                                lastName: lastName,
+                                email: email,
+                                password: hashed,
+                                deviceType: deviceType,
+                                createdAt: Date.now(),
+                                accountVerificationToken: cryptedToken
+                            };
+
+                            User.create({ ...newUser }).then((user) => {
+
+                                let mailing = {
+                                    from: 'Admin',
+                                    to: user.email,
+                                    subject: 'Account Verification',
+                                    html: `<section>
                                             <h1> Welcome ${user.firstName} </h1>
                                             <p>
                                                 <a href="http://localhost:3000?token=${cryptedToken}">Click me..1!</a>
                                             </p>
                                        </section>`
-                            };
+                                };
 
-                            mail.nodeMail(mailing);
+                                mail.nodeMail(mailing);
 
-                            return res.status(200).json({
-                                status: "200",
-                                message: 'Registered Successfully..!!',
+                                return res.status(200).json({
+                                    status: "200",
+                                    message: 'Registered Successfully..!!',
+                                    user: user
+                                });
+
+
+                            }).catch((error) => {
+
+                                return res.status(400).json({
+                                    status: "400",
+                                    message: 'User creating failed',
+                                    error: error
+                                });
+
                             });
-                            
 
                         }).catch((error) => {
-                            
-                            return res.status(400).json({
-                                status: "400",
-                                message: 'User creating failed',
+
+                            return res.status(500).json({
+                                status: "500",
+                                message: 'Hasing error..',
                                 error: error
                             });
 
                         });
 
-                    }).catch((error) => {
+                    }
 
-                        return res.status(500).json({
-                            status: "500",
-                            message: 'Hasing error..',
-                            error: error
-                        });
+                });
 
-                    });
 
-                }
+            }
 
+        } else {
+
+            return res.status(400).json({
+                status: "400",
+                message: 'All fields are required..!!',
+                error: [
+                    'firstName is required',
+                    'lastNamse is required',
+                    'password is required',
+                    'email is required',
+                    'deviceType is required'
+                ]
             });
 
         }
+
     } catch (error) {
 
         res.status(500).json({
@@ -100,5 +128,385 @@ exports.Register = async (req, res, next) => {
         });
 
     }
+
 }
+
+/* Login api */
+exports.Login = async (req, res, next) => {
+
+    try {
+
+        var email = req.body.email;
+        var password = req.body.password;
+        var deviceType = req.body.deviceType;
+
+        if (email, password, deviceType) {
+
+            const registeredUser = await User.findOne({ where: { email: email } });
+
+            if (!registeredUser) {
+
+                return res.status(404).json({
+                    status: "404",
+                    message: 'User does not exist.!!'
+                });
+
+            } else {
+
+                if (registeredUser.active === false) {
+
+                    return res.status(400).json({
+                        status: "400",
+                        message: 'You are not allowed to access features.!!'
+                    });
+
+                } else {
+
+                    if (registeredUser.verified === false) {
+
+                        let mailing = {
+                            from: 'Admin',
+                            to: registeredUser.email,
+                            subject: 'Account Verification',
+                            html: `<section>
+                                    <h1> Welcome ${registeredUser.firstName} </h1>
+                                    <p>
+                                        <a href="http://localhost:3000?token=${registeredUser.accountVerificationToken}">Click me..1!</a>
+                                    </p>
+                               </section>`
+                        };
+
+                        mail.nodeMail(mailing);
+
+                        return res.status(400).json({
+                            status: "400",
+                            message: 'Verify your account first, before Login..!!',
+                        });
+
+                    } else {
+
+                        bcrypt.compare(password, registeredUser.password).then((compared) => {
+
+                            if (!compared) {
+
+                                return res.status(400).json({
+                                    status: "400",
+                                    message: 'Incorrect Password'
+                                });
+
+                            } else {
+
+                                const token = jwt.sign({
+
+                                    id: registeredUser.id,
+                                    firstName: registeredUser.firstName,
+                                    lastName: registeredUser.lastName,
+                                    email: registeredUser.email,
+                                    verified: registeredUser.verified,
+                                    active: registeredUser.active,
+                                    userRole: registeredUser.userRole,
+                                    createdAt: registeredUser.createdAt,
+                                    updatedAt: registeredUser.updatedAt,
+                                    deviceType: registeredUser.deviceType
+
+                                }, process.env.JWT_KEY);
+
+                                return res.status(200).json({
+                                    status: "200",
+                                    message: 'Logged in Successfully',
+                                    results: {
+                                        user: {
+                                            id: registeredUser.id,
+                                            userRole: registeredUser.userRole
+                                        },
+
+                                        token: token
+                                    }
+                                });
+
+                            }
+
+                        });
+
+                    }
+
+                }
+
+            }
+
+        } else {
+
+            return res.status(400).json({
+                status: "400",
+                message: 'All fields are required.!!',
+                error: [
+                    'email is required',
+                    'password is required',
+                    'deviceType is required'
+                ]
+            });
+
+        }
+
+    } catch (error) {
+
+        return res.status(500).json({
+            status: "500",
+            message: 'Error.!!',
+            error: error
+        });
+
+    }
+
+}
+
+/* Account Verification api */
+exports.accountVerification = async (req, res, next) => {
+
+    try {
+
+        var token = req.body.token;
+        var deviceType = req.body.deviceType;
+
+        if (token, deviceType) {
+            console.log(token);
+            const isAccountToken = await User.findOne({ where: { accountVerificationToken: token } });
+
+            if (!isAccountToken) {
+
+                return res.status(400).json({
+                    status: "400",
+                    message: 'Verification link has expired.!!'
+                });
+
+            } else {
+
+                let user = isAccountToken;
+
+                if (user.verified === true) {
+
+                    return res.status(400).json({
+                        status: "400",
+                        message: 'Account is already verified.!!'
+                    });
+
+                } else {
+
+                    let updateUser = {
+                        verified: true,
+                        accountVerificationToken: null
+                    }
+
+                    user.update({ ...updateUser }).then((user) => {
+
+                        const token = jwt.sign({
+
+                            id: user.id,
+                            firstName: user.firstName,
+                            lastName: user.lastName,
+                            email: user.email,
+                            verified: user.verified,
+                            active: user.active,
+                            userRole: user.userRole,
+                            createdAt: user.createdAt,
+                            updatedAt: user.updatedAt,
+                            deviceType: user.deviceType
+
+                        }, process.env.JWT_KEY);
+
+                        return res.status(200).json({
+                            status: "200",
+                            message: 'Verified Successfuly',
+                            results: {
+                                user: {
+                                    id: user.id,
+                                    userRole: user.userRole
+                                },
+
+                                token: token
+                            }
+                        });
+
+                    }).catch((error) => {
+
+                        return res.status(400).json({
+                            status: "400",
+                            message: 'Verified Failed',
+                            error: error
+                        });
+
+                    })
+
+                }
+
+            }
+
+        } else {
+
+            return res.status(400).json({
+                status: "400",
+                message: 'All fields are required.!!',
+                error: [
+                    'Token is required',
+                    'deviceType is required'
+                ]
+            });
+
+        }
+
+    } catch (error) {
+
+        return res.status(500).json({
+            status: "500",
+            message: 'Error.!!',
+            error: error
+        });
+
+    }
+
+}
+
+/* Forgot Password api */
+exports.forgotPassword = async (req, res, next) => {
+
+    try {
+
+        var email = req.body.email;
+        var deviceType = req.body.deviceType;
+
+        if (email, deviceType) {
+
+            const isUser = await User.findOne({ where: { email: email } });
+
+            if (!isUser) {
+
+                return res.status(404).json({
+                    status: "404",
+                    message: 'Email does not exist.!!'
+                });
+
+            } else {
+
+                crypto.randomBytes(20, (error, buffer) => {
+
+                    if (error) {
+
+                        return res.status(500).json({
+                            status: "500",
+                            message: 'Crypto error..',
+                            error: error
+                        });
+
+                    } else {
+
+                        let cryptedToken = buffer.toString('hex');
+
+                        let user = isUser;
+
+                        let updateUser = {
+                            forgotPasswordToken: cryptedToken,
+                            forgotPasswordTokenExpire: Date.now() + 3600000
+                        };
+
+                        user.update({ ...updateUser }).then((user) => {
+
+                            return res.status(200).json({
+                                status: "200",
+                                message: 'Recovery Password has sent to requested Email.',
+                                user: user
+                            });
+
+                        }).catch((error) => {
+
+                            return res.status(400).json({
+                                status: "400",
+                                message: 'Forgot Password Failed..!!',
+                                error: error
+                            });
+
+                        });
+                    }
+
+                });
+
+            }
+
+        } else {
+
+            return res.status(400).json({
+                status: "400",
+                message: 'All fields are required.!!',
+                error: [
+                    'Email is required.',
+                    'deviceType is required'
+                ]
+            });
+
+        }
+
+    } catch (error) {
+
+        return res.status(500).json({
+            status: "500",
+            message: 'Error.!!',
+            error: error
+        });
+
+    }
+
+}
+
+/* Recovery Password api */
+exports.recoveryPassword = async (req, res, next) => {
+
+    try {
+
+        var token = req.body.token;
+        var deviceType = req.body.deviceType;
+
+        if (token, deviceType) {
+
+            const isRecoveryToken = await User.findOne({ where: { forgotPasswordToken: token, forgotPasswordTokenExpire: { $gt: Date.now() } } });
+
+            if (!isRecoveryToken) {
+
+                return res.status(400).json({
+                    status: "400",
+                    message: 'Recovery Link has Expired.!!',
+                });
+
+            } else {
+
+                let user = isRecoveryToken;
+
+                console.log("user", user);
+
+            }
+
+        } else {
+
+            return res.status(400).json({
+                status: "400",
+                message: 'All fields are required.!!',
+                error: [
+                    'Email is required.',
+                    'deviceType is required'
+                ]
+            });
+
+        }
+
+
+    } catch (error) {
+
+        return res.status(500).json({
+            status: "500",
+            message: 'Error.!!',
+            error: error
+        });
+
+    }
+
+}
+
 

@@ -7,9 +7,13 @@ const User = sequelize.define('user', {
     lastName: { type: Sequelize.STRING, allowNull: false },
     email: { type: Sequelize.STRING, allowNull: false, unique: true, validate: { isEmail: true } },
     password: { type: Sequelize.STRING, allowNull: false },
+    verified: {  type: Sequelize.BOOLEAN, defaultValue: false },
+    active: {  type: Sequelize.BOOLEAN, defaultValue: true },
     userRole: { type: Sequelize.STRING, defaultValue: 'user' },
     deviceType: { type: Sequelize.STRING, allowNull: false },
     accountVerificationToken: { type: Sequelize.STRING },
+    forgotPasswordToken: { type: Sequelize.STRING },
+    forgotPasswordTokenExpire: { type: Sequelize.DATE },
     createdAt: { type: Sequelize.DATE, allowNull: false },
     updatedAt: { type: Sequelize.DATE, allowNull: false }
 });

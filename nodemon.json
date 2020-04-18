@@ -1,0 +1,10 @@
+{
+    "env": {
+        "SERVER_USER": "root",
+        "SERVER_PASSWORD": "Mani8803",
+        "SERVER_NAME": "localhost",
+        "SERVER_DATABASE": "mysql",
+        "SERVER_DATABASE_ROOM": "121-with",
+        "JWT_KEY": "secret_token_should_be_longer_for_login"
+    }
+}
