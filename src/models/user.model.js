@@ -9,7 +9,7 @@ const User = sequelize.define('user', {
     password: { type: Sequelize.STRING, allowNull: false },
     verified: {  type: Sequelize.BOOLEAN, defaultValue: false },
     active: {  type: Sequelize.BOOLEAN, defaultValue: true },
-    userRole: { type: Sequelize.STRING, defaultValue: 'user' },
+    userRole: { type: Sequelize.STRING, defaultValue: 'USER' },
     deviceType: { type: Sequelize.STRING, allowNull: false },
     accountVerificationToken: { type: Sequelize.STRING },
     forgotPasswordToken: { type: Sequelize.STRING },

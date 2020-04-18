@@ -3,6 +3,11 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const sequelize = require('./util/database');
 
+/* Requiring models of Tables */
+const User = require('./models/user.model');
+const MessageList = require('./models/message-list.model');
+const MessageItem = require('./models/message-item.model');
+
 /* Importing Routes */
 const user = require('./routes/user.routes');
 
@@ -28,10 +33,17 @@ app.use((req, res, next) => {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+/* Making one to one RelatiionShip */
+User.hasMany(MessageList);
+MessageList.belongsTo(User, { constraints: true, onDelete: 'CASCADE' });
+MessageList.belongsToMany(User, { through: MessageItem });
+User.belongsToMany(MessageList, { through: MessageItem });
+
 /* connection to db */
 sequelize.sync()
   .then(() => {})
   .catch((disconnected) => {
+    console.log(disconnected);
     console.log('Not Connected..!!');
   });
 
