@@ -4,8 +4,8 @@ const bodyParser = require('body-parser');
 const sequelize = require('./util/database');
 
 /* Requiring models of Tables */
-const User = require('./models/user.model');
-const Friend = require('./models/friends.model');
+const User = require('./models/user/user.model');
+const Friends = require('./models/friends/friends.model');
 const MessageList = require('./models/messages/message-list.model');
 const MessageItem = require('./models/messages/message-item.model');
 
@@ -37,14 +37,15 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 /* Making one to one RelatiionShip */
 User.hasMany(MessageList);
-User.hasOne(Friend);
-Friend.belongsTo(User);
 MessageList.belongsTo(User, { constraints: true, onDelete: 'CASCADE' });
+
+User.hasMany(Friends);
+Friends.belongsTo(User);
 MessageList.belongsToMany(User, { through: MessageItem });
 User.belongsToMany(MessageList, { through: MessageItem });
 
 /* connection to db */
-sequelize.sync()
+sequelize.sync({ force: false })
   .then(() => {})
   .catch((disconnected) => {
     console.log(disconnected);
