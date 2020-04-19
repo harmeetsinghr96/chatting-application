@@ -1,6 +1,6 @@
 /* Importing packages and models */
-const User = require('../../models/user/user.model');
-const FriendRequest = require('../../models/friends/friends.model');
+const User = require('../models/user/user.model');
+const FriendRequest = require('../models/friends/friends.model');
 const Sequelize = require('sequelize');
 const Op = Sequelize.Op;
 
@@ -143,7 +143,7 @@ exports.friendReqesutSent = async (req, res, next) => {
 
 }
 
-
+/* List of friend requests */
 exports.getFriendRequests = async (req, res, next) => {
 
     try {
@@ -200,6 +200,7 @@ exports.getFriendRequests = async (req, res, next) => {
 
 }
 
+/* Accept or reject requests */
 exports.acceptOrReject = async (req, res, next) => {
     try {
 
@@ -299,6 +300,7 @@ exports.acceptOrReject = async (req, res, next) => {
 
 }
 
+/* List of accepted users belongs to user */
 exports.getAcceptedList = async (req, res, next) => {
     
     try {

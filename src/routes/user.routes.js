@@ -1,6 +1,6 @@
 /* importing packages */
 const express = require("express");
-const Route = require('../controllers/user/user.controller');
+const Route = require('../controllers/user.controller');
 
 /* Setting router to express router */
 const Router = express.Router();
