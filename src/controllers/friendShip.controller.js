@@ -1,6 +1,6 @@
 /* Importing packages and models */
 const User = require('../models/user/user.model');
-const FriendRequest = require('../models/friends/friends.model');
+const FriendRequest = require('../models/friends/friendShip.model');
 const Sequelize = require('sequelize');
 const Op = Sequelize.Op;
 
@@ -77,6 +77,8 @@ exports.friendReqesutSent = async (req, res, next) => {
 
             const isToUser = await User.findByPk(toUserId);
 
+            console.log(isToUser);
+
             if (!isToUser) {
 
                 return res.status(400).json({
@@ -100,9 +102,11 @@ exports.friendReqesutSent = async (req, res, next) => {
                         lastName: isLoggedInUser.lastName
                     },
                     pending: true,
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
                 };
 
-                isLoggedInUser.createFriendRequest({ ...sendRequest }).then((friendRequest) => {
+                isLoggedInUser.addFriend(isToUser, { through: { ...sendRequest } }).then((friendRequest) => {
 
                     return res.status(200).json({
                         status: "200",
@@ -127,6 +131,163 @@ exports.friendReqesutSent = async (req, res, next) => {
             return res.status(400).json({
                 status: "400",
                 message: 'Pleaase verify your account first.!!'
+            });
+
+        }
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            status: "500",
+            message: 'Error.!!',
+            error: error
+        });
+
+    }
+
+}
+
+/* Accept or reject requests */
+exports.acceptOrReject = async (req, res, next) => {
+    try {
+
+        var loggedInUser = req.user.id;
+        var friendRequestId = req.body.friendRequestId;
+        var accept = req.body.accept;
+        var reject = req.body.reject;
+
+        const isLoggedInUser = await User.findByPk(loggedInUser);
+
+        if (isLoggedInUser.verified === true) {
+
+            const isFriendRequest = await FriendRequest.findByPk(friendRequestId);
+
+            if (!isFriendRequest) {
+
+                return res.status(400).json({
+                    status: "400",
+                    message: 'Incorrect Friend request id.!!',
+                });
+
+            } else {
+
+                let friendRequest = isFriendRequest;
+                const isFromUser = await User.findByPk(friendRequest.fromId);
+                const isToUser = await User.findByPk(friendRequest.toId);
+
+                let takeActionOnFriendRequest;
+                let acceptOrReject;
+
+                if (isLoggedInUser.id === isToUser.id) {
+                    if (accept) {
+
+                        acceptOrReject = {
+                            pending: false,
+                            accept: true,
+                            reject: false
+                        }
+
+                        takeActionOnFriendRequest = {
+                            toId: isFromUser.id,
+                            fromId: isLoggedInUser.id,
+                            toUser: {
+                                id: isFromUser.id,
+                                firstName: isFromUser.firstName,
+                                lastName: isFromUser.lastName,
+                            },
+                            fromUser: {
+                                id: isLoggedInUser.id,
+                                firstName: isLoggedInUser.firstName,
+                                lastName: isLoggedInUser.lastName
+                            },
+                            pending: false,
+                            accept: true,
+                            createdAt: Date.now(),
+                            updatedAt: Date.now()
+                        }
+
+                    } else if (reject) {
+
+                        acceptOrReject = {
+                            pending: false,
+                            accept: false,
+                            reject: true
+                        }
+
+                        takeActionOnFriendRequest = {
+                            toId: isFromUser.id,
+                            fromId: isLoggedInUser.id,
+                            toUser: {
+                                id: isFromUser.id,
+                                firstName: isFromUser.firstName,
+                                lastName: isFromUser.lastName,
+                            },
+                            fromUser: {
+                                id: isLoggedInUser.id,
+                                firstName: isLoggedInUser.firstName,
+                                lastName: isLoggedInUser.lastName
+                            },
+                            pending: false,
+                            accept: false,
+                            reject: true,
+                            createdAt: Date.now(),
+                            updatedAt: Date.now()
+                        }
+
+                    }
+
+                }
+
+                friendRequest.update({ ...acceptOrReject }).then((acceptReject) => {
+
+                    isLoggedInUser.addFriend(isFromUser, { through: { ...takeActionOnFriendRequest } })
+                        .then((resp) => {
+
+                            if (accept) {
+
+                                return res.status(200).json({
+                                    status: "200",
+                                    message: 'Accepted',
+
+                                });
+
+                            } else {
+
+                                return res.status(200).json({
+                                    status: "200",
+                                    message: 'Rejected',
+                                });
+
+                            };
+
+                        }).catch((error) => {
+                            
+                            return res.status(400).json({
+                                status: "400",
+                                message: 'Error in accept or reject.!!',
+                                error: error
+                            });
+
+                        })
+
+
+                }).catch((error) => {
+
+                    return res.status(400).json({
+                        status: "400",
+                        message: 'Error in accept or reject.!!',
+                        error: error
+                    });
+
+                });
+
+            }
+
+        } else {
+
+            return res.status(400).json({
+                status: "400",
+                message: 'Please verify your account first',
             });
 
         }
@@ -200,106 +361,6 @@ exports.getFriendRequests = async (req, res, next) => {
 
 }
 
-/* Accept or reject requests */
-exports.acceptOrReject = async (req, res, next) => {
-    try {
-
-        var loggedInUser = req.user.id;
-        var friendRequestId = req.body.friendRequestId;
-        var accept = req.body.accept;
-        var reject = req.body.reject;
-
-        const isLoggedInUser = await User.findByPk(loggedInUser);
-
-        if (isLoggedInUser.verified === true) {
-
-            const isFriendRequest = await FriendRequest.findByPk(friendRequestId);
-
-            if (!isFriendRequest) {
-
-                return res.status(400).json({
-                    status: "400",
-                    message: 'Incorrect Friend request id.!!',
-                });
-
-            } else {
-
-                let friendRequest = isFriendRequest;
-                let actionFriendRequest;
-
-                if (accept) {
-
-                    actionFriendRequest = {
-                        pending: false,
-                        accept: true,
-                        reject: false
-                    }
-
-                } else if (reject) {
-
-                    actionFriendRequest = {
-                        pending: false,
-                        accept: false,
-                        reject: true
-                    }
-
-                }
-
-                friendRequest.update( {...actionFriendRequest} ).then((acceptReject) => {
-
-                    if (accept) {
-                        
-                        return res.status(200).json({
-                            status: "200",
-                            message: 'Accepted',
-                            results: acceptReject 
-
-                        });
-
-                    } else {
-
-                        return res.status(200).json({
-                            status: "200",
-                            message: 'Rejected',
-                            results: acceptReject 
-                        });
-
-                    };
-
-                }).catch((error) => {
-                    console.log(error);
-                    return res.status(400).json({
-                        status: "400",
-                        message: 'Error in accept or reject.!!',
-                        error: error
-                    });
-
-                });                
-                
-
-            }
-
-        } else {
-
-            return res.status(400).json({
-                status: "400",
-                message: 'Please verify your account first',
-            });  
-
-        }
-        
-    } catch (error) {
-
-        return res.status(500).json({
-            status: "500",
-            message: 'Error.!!',
-            error: error
-        });
-
-    }
-
-}
-
 /* List of accepted users belongs to user */
 exports.getAcceptedList = async (req, res, next) => {
     
@@ -311,16 +372,19 @@ exports.getAcceptedList = async (req, res, next) => {
 
         if (isLoggedInUser.verified === true) {
 
-            const listOfAcceptedFriends = await isLoggedInUser.getFriendRequests({
-                where: { accept: { [Op.like]: true } },
-                attributes: [ 'id', 'toId', 'fromId', 'toUser', 'fromUser', 'accept', 'createdAt' ]
+            const listOfAcceptedFriends = await isLoggedInUser.getFriends({
+                include: [{ 
+                        model: User, as: 'Friends', 
+                        attributes: [ 'id', 'firstName', 'lastName' ], 
+                }],
+                attributes: [ 'id', 'firstName', 'lastName'  ],
             });
 
             if (listOfAcceptedFriends) {
 
                 return res.status(400).json({
                     status: "200",
-                    message: 'Fetched',
+                    message: 'Fetched accepted list',
                     results: listOfAcceptedFriends
                 });
                 
@@ -344,7 +408,7 @@ exports.getAcceptedList = async (req, res, next) => {
         }
 
     } catch (error) {
-
+        console.log(error);
         return res.status(500).json({
             status: "500",
             message: 'Error.!!',
