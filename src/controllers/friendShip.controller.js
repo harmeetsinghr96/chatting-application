@@ -1,6 +1,6 @@
 /* Importing packages and models */
-const User = require('../models/user/user.model');
-const FriendRequest = require('../models/friends/friendShip.model');
+const User = require('../models/user.model');
+const FriendRequest = require('../models/friendShip.model');
 const Sequelize = require('sequelize');
 const Op = Sequelize.Op;
 
@@ -238,10 +238,11 @@ exports.acceptOrReject = async (req, res, next) => {
 
                 }
 
-                friendRequest.update({ ...acceptOrReject }).then((acceptReject) => {
 
-                    isLoggedInUser.addFriend(isFromUser, { through: { ...takeActionOnFriendRequest } })
-                        .then((resp) => {
+                isLoggedInUser.setFriends(isFromUser, { through: { ...takeActionOnFriendRequest } })
+                    .then((resp) => {
+                        
+                        friendRequest.update({ ...acceptOrReject }).then((acceptReject) => {
 
                             if (accept) {
 
@@ -261,7 +262,7 @@ exports.acceptOrReject = async (req, res, next) => {
                             };
 
                         }).catch((error) => {
-                            
+
                             return res.status(400).json({
                                 status: "400",
                                 message: 'Error in accept or reject.!!',
@@ -271,15 +272,14 @@ exports.acceptOrReject = async (req, res, next) => {
                         })
 
 
-                }).catch((error) => {
-
-                    return res.status(400).json({
-                        status: "400",
-                        message: 'Error in accept or reject.!!',
-                        error: error
+                    }).catch((error) => {
+                        console.log(error);
+                        return res.status(400).json({
+                            status: "400",
+                            message: 'Error in accept or reject.!!',
+                            error: error
+                        });
                     });
-
-                });
 
             }
 
@@ -316,11 +316,11 @@ exports.getFriendRequests = async (req, res, next) => {
         if (isLoggedInUser.verified === true) {
 
             const getFriendRequestsList = await FriendRequest.findAll({
-                where: { 
-                    toId: { [Op.like]: isLoggedInUser.id }, 
-                    pending: { [Op.like]: true } 
+                where: {
+                    toId: { [Op.like]: isLoggedInUser.id },
+                    pending: { [Op.like]: true }
                 },
-                attributes: [ 'id', 'toId', 'fromId', 'toUser', 'fromUser', 'pending', 'createdAt' ]
+                attributes: ['id', 'toId', 'fromId', 'toUser', 'fromUser', 'pending', 'createdAt']
             });
 
             if (getFriendRequestsList.length < 0) {
@@ -331,7 +331,7 @@ exports.getFriendRequests = async (req, res, next) => {
                 });
 
             } else {
-                
+
                 return res.status(200).json({
                     status: "200",
                     message: 'Fetched Friend Request List.!!',
@@ -345,7 +345,7 @@ exports.getFriendRequests = async (req, res, next) => {
             return res.status(400).json({
                 status: "400",
                 message: 'Please verify your account first',
-            });  
+            });
 
         }
 
@@ -363,7 +363,7 @@ exports.getFriendRequests = async (req, res, next) => {
 
 /* List of accepted users belongs to user */
 exports.getAcceptedList = async (req, res, next) => {
-    
+
     try {
 
         var loggedInUser = req.user.id;
@@ -373,11 +373,11 @@ exports.getAcceptedList = async (req, res, next) => {
         if (isLoggedInUser.verified === true) {
 
             const listOfAcceptedFriends = await isLoggedInUser.getFriends({
-                include: [{ 
-                        model: User, as: 'Friends', 
-                        attributes: [ 'id', 'firstName', 'lastName' ], 
+                include: [{
+                    model: User, as: 'Friends',
+                    attributes: ['id', 'firstName', 'lastName'],
                 }],
-                attributes: [ 'id', 'firstName', 'lastName'  ],
+                attributes: ['id', 'firstName', 'lastName'],
             });
 
             if (listOfAcceptedFriends) {
@@ -387,7 +387,7 @@ exports.getAcceptedList = async (req, res, next) => {
                     message: 'Fetched accepted list',
                     results: listOfAcceptedFriends
                 });
-                
+
 
             } else {
 
@@ -397,14 +397,14 @@ exports.getAcceptedList = async (req, res, next) => {
                 });
 
             }
-            
+
         } else {
 
             return res.status(400).json({
                 status: "400",
                 message: 'Please verify your account first',
             });
-            
+
         }
 
     } catch (error) {
