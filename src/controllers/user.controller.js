@@ -64,7 +64,7 @@ exports.Register = async (req, res, next) => {
                                     html: `<section>
                                             <h1> Welcome ${user.firstName} </h1>
                                             <p>
-                                                <a href="http://localhost:3000?token=${cryptedToken}">Click me..1!</a>
+                                                <a href="http://localhost/chat/src/public/email-verification.php?token=${cryptedToken}">Click me..1!</a>
                                             </p>
                                        </section>`
                                 };
@@ -73,7 +73,7 @@ exports.Register = async (req, res, next) => {
 
                                 return res.status(200).json({
                                     status: "200",
-                                    message: 'Registered Successfully..!!',
+                                    message: 'Registered Successfully, Please check your email to verify your account, Thank you.!!',
                                     user: user
                                 });
 
@@ -142,6 +142,7 @@ exports.Login = async (req, res, next) => {
         var password = req.body.password;
         var deviceType = req.body.deviceType;
 
+        console.log(req.body.email)
         if (email, password, deviceType) {
 
             const registeredUser = await User.findOne({ where: { email: email } });
@@ -156,7 +157,6 @@ exports.Login = async (req, res, next) => {
             } else {
 
                 if (registeredUser.active === false) {
-
                     return res.status(400).json({
                         status: "400",
                         message: 'You are not allowed to access features.!!'
@@ -165,6 +165,7 @@ exports.Login = async (req, res, next) => {
                 } else {
 
                     if (registeredUser.verified === false) {
+                        console.log('register');
 
                         let mailing = {
                             from: 'Admin',
@@ -173,7 +174,7 @@ exports.Login = async (req, res, next) => {
                             html: `<section>
                                     <h1> Welcome ${registeredUser.firstName} </h1>
                                     <p>
-                                        <a href="http://localhost:3000?token=${registeredUser.accountVerificationToken}">Click me..1!</a>
+                                        <a href="http://localhost/chat/src/public/email-verification.php?token=${registeredUser.accountVerificationToken}">Click me..1!</a>
                                     </p>
                                </section>`
                         };
@@ -411,6 +412,20 @@ exports.forgotPassword = async (req, res, next) => {
                         };
 
                         user.update({ ...updateUser }).then((user) => {
+
+                            let mailing = {
+                                from: 'Admin',
+                                to: user.email,
+                                subject: 'Password Reset Link',
+                                html: `<section>
+                                        <h1> Welcome ${user.firstName} </h1>
+                                        <p>
+                                            <a href="http://localhost/chat/src/public/recovery-password.php?token=${cryptedToken}">Click me..1!</a>
+                                        </p>
+                                   </section>`
+                            };
+
+                            mail.nodeMail(mailing);
 
                             return res.status(200).json({
                                 status: "200",

@@ -11,7 +11,7 @@ exports.getAllUsers = async (req, res, next) => {
 
         var pageQuery = +req.query.page - 1;
         var pageSizeQuery = +req.query.pageSize;
-        var search = req.body.search;
+        var search = req.query.search;
         var loggedInUser = req.user.id;
 
         const isLoggedInUser = await User.findByPk(loggedInUser);
@@ -22,7 +22,7 @@ exports.getAllUsers = async (req, res, next) => {
                 where: search != '*' || '' ? { firstName: { [Op.like]: `%${search}%` } } : {},
                 attributes: ['id', 'firstName', 'lastName', 'email', 'verified', 'active', 'userRole', 'createdAt', 'updatedAt'],
                 offset: pageQuery * pageSizeQuery,
-                limit: pageSizeQuery
+                limit: pageSizeQuery,
             });
             // 
             if (!listOfUsers) {
@@ -33,6 +33,9 @@ exports.getAllUsers = async (req, res, next) => {
                 });
 
             } else {
+
+                let findId = listOfUsers.findIndex(user => loggedInUser === user.id);
+                listOfUsers.splice(findId, 1);
 
                 return res.status(200).json({
                     status: "200",
@@ -52,7 +55,7 @@ exports.getAllUsers = async (req, res, next) => {
         }
 
     } catch (error) {
-
+        console.log(error);
         return res.status(500).json({
             status: "500",
             message: 'Error.!!',
@@ -77,7 +80,7 @@ exports.friendReqesutSent = async (req, res, next) => {
 
             const isToUser = await User.findByPk(toUserId);
 
-            console.log(isToUser);
+            console.log(req.body.toUserId);
 
             if (!isToUser) {
 
@@ -88,41 +91,71 @@ exports.friendReqesutSent = async (req, res, next) => {
 
             } else {
 
-                let sendRequest = {
-                    toId: isToUser.id,
-                    fromId: isLoggedInUser.id,
-                    toUser: {
-                        id: isToUser.id,
-                        firstName: isToUser.firstName,
-                        lastName: isToUser.lastName,
-                    },
-                    fromUser: {
-                        id: isLoggedInUser.id,
-                        firstName: isLoggedInUser.firstName,
-                        lastName: isLoggedInUser.lastName
-                    },
-                    pending: true,
-                    createdAt: Date.now(),
-                    updatedAt: Date.now()
-                };
-
-                isLoggedInUser.addFriend(isToUser, { through: { ...sendRequest } }).then((friendRequest) => {
-
-                    return res.status(200).json({
-                        status: "200",
-                        message: 'Friend request sent.!!',
-                        results: friendRequest
-                    });
-
-                }).catch((error) => {
-
-                    return res.status(400).json({
-                        status: "400",
-                        message: 'Friend request sending failed.!!',
-                        error: error
-                    });
-
+                const ifFriendAlrSent = await FriendRequest.findOne({
+                    where: {
+                        toId: { [Op.like]: isToUser.id },
+                        fromId: { [Op.like]: isLoggedInUser.id },
+                    }
                 });
+
+
+                if (!ifFriendAlrSent) {
+
+                    let sendRequest = {
+                        toId: isToUser.id,
+                        fromId: isLoggedInUser.id,
+                        toUser: {
+                            id: isToUser.id,
+                            firstName: isToUser.firstName,
+                            lastName: isToUser.lastName,
+                        },
+                        fromUser: {
+                            id: isLoggedInUser.id,
+                            firstName: isLoggedInUser.firstName,
+                            lastName: isLoggedInUser.lastName
+                        },
+                        pending: true,
+                        createdAt: Date.now(),
+                        updatedAt: Date.now()
+                    };
+
+                    isLoggedInUser.addFriend(isToUser, { through: { ...sendRequest } }).then((friendRequest) => {
+
+                        return res.status(200).json({
+                            status: "200",
+                            message: 'Friend request sent.!!',
+                            results: friendRequest
+                        });
+
+                    }).catch((error) => {
+
+                        return res.status(400).json({
+                            status: "400",
+                            message: 'Friend request sending failed.!!',
+                            error: error
+                        });
+
+                    });
+
+                } else {
+
+                    if (ifFriendAlrSent.pending === true) {
+
+                        return res.status(400).json({
+                            status: "400",
+                            message: 'Pending.!!'
+                        });
+
+                    } else if (ifFriendAlrSent.accept === true) {
+
+                        return res.status(400).json({
+                            status: "400",
+                            message: 'You are alreaady a friend of this user.!!'
+                        });
+
+                    }
+
+                }
 
             }
 
@@ -239,12 +272,12 @@ exports.acceptOrReject = async (req, res, next) => {
                 }
 
 
-                isLoggedInUser.setFriends(isFromUser, { through: { ...takeActionOnFriendRequest } })
-                    .then((resp) => {
-                        
-                        friendRequest.update({ ...acceptOrReject }).then((acceptReject) => {
+                if (accept) {
 
-                            if (accept) {
+                    isLoggedInUser.setFriends(isFromUser, { through: { ...takeActionOnFriendRequest } })
+                        .then((resp) => {
+
+                            friendRequest.update({ ...acceptOrReject }).then((acceptReject) => {
 
                                 return res.status(200).json({
                                     status: "200",
@@ -252,25 +285,36 @@ exports.acceptOrReject = async (req, res, next) => {
 
                                 });
 
-                            } else {
 
-                                return res.status(200).json({
-                                    status: "200",
-                                    message: 'Rejected',
+                            }).catch((error) => {
+
+                                return res.status(400).json({
+                                    status: "400",
+                                    message: 'Error in accept or reject.!!',
+                                    error: error
                                 });
 
-                            };
+                            })
+
 
                         }).catch((error) => {
-
+                            console.log(error);
                             return res.status(400).json({
                                 status: "400",
                                 message: 'Error in accept or reject.!!',
                                 error: error
                             });
+                        });
 
-                        })
 
+                } else if (reject) {
+
+                    friendRequest.destroy({ where: { id: friendRequestId } }).then((acceptReject) => {
+
+                        return res.status(200).json({
+                            status: "200",
+                            message: 'Rejected',
+                        });
 
                     }).catch((error) => {
                         console.log(error);
@@ -279,8 +323,10 @@ exports.acceptOrReject = async (req, res, next) => {
                             message: 'Error in accept or reject.!!',
                             error: error
                         });
-                    });
 
+                    })
+
+                }
             }
 
         } else {

@@ -6,7 +6,7 @@ const authMiddleware = (req, res, next) => {
   
     try {
   
-        var token = req.headers.authorization.split(" ")[1];
+        var token = req.headers.authorization;
         var authUser = jwt.verify(token, process.env.JWT_KEY);
 
         req.user = {...authUser};
