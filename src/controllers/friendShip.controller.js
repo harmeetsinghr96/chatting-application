@@ -34,14 +34,29 @@ exports.getAllUsers = async (req, res, next) => {
 
             } else {
 
-                let findId = listOfUsers.findIndex(user => loggedInUser === user.id);
-                listOfUsers.splice(findId, 1);
+                if (search.trim().length > 0) {
+                
+                    return res.status(200).json({
+                        status: "200",
+                        message: 'Fetched list of users.!!',
+                        results: listOfUsers
+                    });
 
-                return res.status(200).json({
-                    status: "200",
-                    message: 'Fetched list of users.!!',
-                    results: listOfUsers
-                });
+                } else {
+
+                    let findId = listOfUsers.findIndex(user => user.id == loggedInUser);
+                    listOfUsers.splice(findId, 1);
+                    
+                    return res.status(200).json({
+                        status: "200",
+                        message: 'Fetched list of users.!!',
+                        results: listOfUsers
+                    });
+
+                }
+
+
+
 
             }
 
@@ -428,7 +443,7 @@ exports.getAcceptedList = async (req, res, next) => {
 
             if (listOfAcceptedFriends) {
 
-                return res.status(400).json({
+                return res.status(200).json({
                     status: "200",
                     message: 'Fetched accepted list',
                     results: listOfAcceptedFriends

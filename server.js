@@ -4,7 +4,8 @@
 const app = require("./src/app");
 const debug = require("debug")("node-angular");
 const http = require("http");
-
+const Filter = require('bad-words');
+const User = require('./src/models/user.model');
 /***************************************
 * Discription: creating port to listen *
 ***************************************/
@@ -65,3 +66,23 @@ const server = http.createServer(app);
 server.on("error", onError);
 server.on("listening", onListening);
 server.listen(port);
+const io = require('./src/socket.io').init(server);
+io.on('connection', (socket) => {
+  console.log('New client Connected.!!');
+  socket.emit('connected');
+
+  socket.on('join PM', (pm, cb) => {
+    socket.join(pm.room1);
+    socket.join(pm.room2);
+    cb();
+  });
+
+  socket.on('new_message', (data) => {
+    
+    socket.to(data.room).emit('new msg', {
+      text: data.message,
+      sender: data.from
+    });
+  });
+
+});

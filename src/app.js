@@ -2,6 +2,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const sequelize = require('./util/database');
+// const socket = require('../server');
 
 /* Requiring models of Tables */
 const User = require('./models/user.model');
@@ -35,6 +36,7 @@ app.use((req, res, next) => {
 /* middlewares of body parser */
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+
 
 /* Making one to one RelatiionShip */
 User.belongsToMany(User, { as: 'Friends', through: FriendShip });

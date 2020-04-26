@@ -3,7 +3,6 @@ const Sequelize = require('sequelize');
 const Op = Sequelize.Op;
 const Chat = require('../models/chat.model');
 
-
 exports.newMessage = async (req, res, next) => {
 
     try {
@@ -46,8 +45,12 @@ exports.newMessage = async (req, res, next) => {
                 };
 
 
-                isLoggedInUser.createChat({...createMessage}).then((message) => {
-                
+                // socket.getIO().on('new_message', (data) => {
+                //     console.log(data);
+                // });
+
+                isLoggedInUser.createChat({ ...createMessage }).then((message) => {
+
                     return res.status(200).json({
                         status: "200",
                         message: 'Message sent.!!',
@@ -55,7 +58,7 @@ exports.newMessage = async (req, res, next) => {
                     });
 
                 }).catch((error) => {
-                    
+
                     return res.status(400).json({
                         status: "400",
                         message: 'Error in sending.!!',
@@ -90,16 +93,16 @@ exports.newMessage = async (req, res, next) => {
 exports.getMessages = async (req, res, next) => {
 
     try {
+
+
         var loggedInUser = req.user.id;
-        console.log(loggedInUser);
-        var toUserId = req.body.toId;
+        var toUserId = req.query.toId;
 
         const isLoggedInUser = await User.findByPk(loggedInUser);
 
         if (isLoggedInUser.verified === true) {
 
             const toUser = await User.findByPk(toUserId);
-
             if (!toUser) {
 
                 return res.status(400).json({
@@ -110,18 +113,20 @@ exports.getMessages = async (req, res, next) => {
             } else {
 
                 Chat.findAll({
-                    where: { [Op.or]: [
-                        {
-                            toId: toUser.id,
-                            fromId: isLoggedInUser.id
-                        },
-                        {
-                            toId: isLoggedInUser.id,
-                            fromId: toUser.id
-                        },
-                    ]}
+                    where: {
+                        [Op.or]: [
+                            {
+                                toId: toUser.id,
+                                fromId: isLoggedInUser.id
+                            },
+                            {
+                                toId: isLoggedInUser.id,
+                                fromId: toUser.id
+                            },
+                        ]
+                    }
                 }).then((message) => {
-                
+
                     return res.status(200).json({
                         status: "200",
                         message: 'Message sent.!!',
@@ -129,7 +134,7 @@ exports.getMessages = async (req, res, next) => {
                     });
 
                 }).catch((error) => {
-                    
+
                     return res.status(400).json({
                         status: "400",
                         message: 'Error in sending.!!',
@@ -151,6 +156,7 @@ exports.getMessages = async (req, res, next) => {
 
     } catch (error) {
 
+        console.log(error);
         return res.status(500).json({
             status: "500",
             message: 'Error.!!',
