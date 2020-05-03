@@ -197,6 +197,7 @@ exports.friendReqesutSent = async (req, res, next) => {
 
 /* Accept or reject requests */
 exports.acceptOrReject = async (req, res, next) => {
+    
     try {
 
         var loggedInUser = req.user.id;
@@ -289,7 +290,7 @@ exports.acceptOrReject = async (req, res, next) => {
 
                 if (accept) {
 
-                    isLoggedInUser.setFriends(isFromUser, { through: { ...takeActionOnFriendRequest } })
+                    isLoggedInUser.addFriends(isFromUser, { through: { ...takeActionOnFriendRequest } })
                         .then((resp) => {
 
                             friendRequest.update({ ...acceptOrReject }).then((acceptReject) => {
@@ -434,19 +435,26 @@ exports.getAcceptedList = async (req, res, next) => {
         if (isLoggedInUser.verified === true) {
 
             const listOfAcceptedFriends = await isLoggedInUser.getFriends({
-                include: [{
-                    model: User, as: 'Friends',
-                    attributes: ['id', 'firstName', 'lastName'],
-                }],
+                
                 attributes: ['id', 'firstName', 'lastName'],
+
             });
 
             if (listOfAcceptedFriends) {
 
+                let acceptedFriendList = [];
+                for (const friend of listOfAcceptedFriends) {
+                    let isFriends = friend.friendShip;
+                    
+                    if (isFriends.accept === true) {
+                        acceptedFriendList.push(friend);
+                    }
+                }
+
                 return res.status(200).json({
                     status: "200",
                     message: 'Fetched accepted list',
-                    results: listOfAcceptedFriends
+                    results: acceptedFriendList
                 });
 
 
@@ -469,7 +477,7 @@ exports.getAcceptedList = async (req, res, next) => {
         }
 
     } catch (error) {
-        console.log(error);
+
         return res.status(500).json({
             status: "500",
             message: 'Error.!!',

@@ -68,17 +68,17 @@ server.on("listening", onListening);
 server.listen(port);
 const io = require('./src/socket.io').init(server);
 io.on('connection', (socket) => {
-  console.log('New client Connected.!!');
   socket.emit('connected');
 
   socket.on('join PM', (pm, cb) => {
+    console.log('rooms', pm);
     socket.join(pm.room1);
     socket.join(pm.room2);
     cb();
   });
 
   socket.on('new_message', (data) => {
-    
+    console.log(data);
     socket.to(data.room).emit('new msg', {
       text: data.message,
       sender: data.from
