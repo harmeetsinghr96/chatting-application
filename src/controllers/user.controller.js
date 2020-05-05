@@ -496,7 +496,7 @@ exports.recoveryPassword = async (req, res, next) => {
             } else {
 
                 let user = isRecoveryToken;
-                
+
                 bcrypt.hash(password, 12).then((hashed) => {
 
                     let recoveryPassword = {
@@ -505,7 +505,7 @@ exports.recoveryPassword = async (req, res, next) => {
                         forgotPasswordTokenExpire: null
                     };
 
-                    user.update( {...recoveryPassword} ).then((user) => {
+                    user.update({ ...recoveryPassword }).then((user) => {
 
                         return res.status(200).json({
                             status: "200",
@@ -513,7 +513,7 @@ exports.recoveryPassword = async (req, res, next) => {
                         });
 
                     }).catch((error) => {
-                        
+
                         return res.status(400).json({
                             status: "400",
                             message: 'Reset Password Failed.!!',
@@ -529,7 +529,7 @@ exports.recoveryPassword = async (req, res, next) => {
                         message: 'hashing error.!!',
                         error: error
                     });
-                    
+
                 });
 
             }
@@ -561,4 +561,119 @@ exports.recoveryPassword = async (req, res, next) => {
 
 }
 
+/* Get the information of a user */
+exports.getUserInfo = async (req, res, next) => {
+
+    try {
+
+        var loggedInUser = req.user.id;
+
+        const isLoggedInUser = await User.findByPk(loggedInUser);
+
+        if (!isLoggedInUser) {
+
+            return res.status(400).json({
+                status: "400",
+                message: 'User is not found in records'
+            });
+
+        } else {
+
+            if (isLoggedInUser.verified === true) {
+
+                return res.status(400).json({
+                    status: "400",
+                    message: 'Fetched user',
+                    user: isLoggedInUser
+                });
+
+            } else {
+
+                return res.status(400).json({
+                    status: "400",
+                    message: 'User is not verified user.'
+                });
+
+            }
+
+        }
+
+    } catch (error) {
+
+        return res.status(500).json({
+            status: "500",
+            message: error
+        });
+
+    }
+
+}
+
+exports.updateuserDetail = async (req, res, next) => {
+
+    try {
+
+        var loggedInUser = req.user.id;
+        var firstName = req.body.firstName;
+        var lastName = req.body.lastName;
+        var email = req.body.email;
+        var avatar = req.body.avatar;
+        
+
+        const isLoggedInUser = await User.findByPk(loggedInUser);
+
+        if (isLoggedInUser.verified === true) {
+
+            const checkCurrentEmailExist = await User.findOne({ 
+                where: { email: email }
+            });
+
+            if (checkCurrentEmailExist) {
+
+                return res.status(400).json({
+                    status: "400",
+                    message: 'Email is already in use.'
+                });    
+
+            } else {
+
+                const updateUser = {
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: email
+                };
+
+                isLoggedInUser.update({ ...updateUser }).then((user) => {
+                    return res.status(400).json({
+                        status: "400",
+                        message: 'User is not verified user.'
+                    });
+                }).catch((error) => {
+                    return res.status(400).json({
+                        status: "400",
+                        message: 'User is not verified user.'
+                    });
+                })
+
+            }
+
+        } else {
+
+            return res.status(400).json({
+                status: "400",
+                message: 'User is not verified user.'
+            });
+
+        }
+
+    } catch (error) {
+
+        return res.status(500).json({
+            status: "500",
+            message: error
+        });
+
+    }
+
+}
 
